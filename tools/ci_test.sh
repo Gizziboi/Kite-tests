@@ -148,6 +148,8 @@ if grep -qi "confirm you.re not a bot\|sign in to confirm" "$OUT"/kite-*.txt 2>/
   warn "YouTube asked this test machine to prove it's not a bot; playback failures may be the test's network, not Kite"
 fi
 kill $LOGCAT 2>/dev/null
+# Echo the end of Kite's error log into the job log too, so it can be read without downloading the artifact.
+if [ -s "$OUT/kite-errors.txt" ]; then echo "== Kite's error log (last 60 lines)"; tail -n 60 "$OUT/kite-errors.txt" | cut -c1-400; fi
 
 {
   echo "## Kite emulator test: $(basename "$APK")"
