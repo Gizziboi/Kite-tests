@@ -66,7 +66,12 @@ video() {
     if playing; then sleep 8; shot "$name"; check "$name" && pass "video $id plays (started within ${t}s)"; return 0; fi
   done
   shot "$name"
-  check "$name" && fail "video $id did not play within ${wait}s (Kite's own error log is in errors.txt)"
+  check "$name" || return 1
+  # YouTube often refuses datacenter IPs (like GitHub's runners) with "Sign in to confirm you're not a bot".
+  # That's the test machine's network, not a Kite bug, so it's a warning, not a failure.
+  adb shell cat /data/data/$PKG/files/errors.txt 2>/dev/null | grep -qi "confirm you.re not a bot\|SignInConfirmNotBot" &&
+    { warn "video $id: YouTube blocked this test machine as a bot, so playback couldn't be tested here"; return 0; }
+  fail "video $id did not play within ${wait}s (Kite's own error log is in errors.txt)"
   return 1
 }
 

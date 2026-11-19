@@ -18,3 +18,9 @@ To test an older build, open the Actions tab, pick "Emulator test", choose Run w
 for example `apks/Kite-2.9.2.apk`.
 
 The repo is public so the runs cost no Actions minutes.
+
+## Known limit
+
+YouTube often blocks GitHub's test machines with "Sign in to confirm you're not a bot". When that happens the
+video checks show a warning instead of a failure, because playback can't be tested from that network. Real
+playback still needs a check on a phone.
