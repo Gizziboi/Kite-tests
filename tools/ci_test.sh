@@ -41,7 +41,15 @@ check() {
   if grep -q "Process: $PKG" "$OUT/crash.txt"; then fail "$step: Kite crashed (see crash.txt)"; return 1; fi
   if adb logcat -d 2>/dev/null | grep -q "ANR in $PKG"; then fail "$step: Kite stopped responding (ANR)"; return 1; fi
   dump "$step"
-  if grep -q "isn't responding" "$OUT/$step.xml" 2>/dev/null; then fail "$step: 'Kite isn't responding' dialog"; return 1; fi
+  if grep -q "isn't responding" "$OUT/$step.xml" 2>/dev/null; then
+    local who
+    who=$(grep -o "text=\"[^\"]*isn't responding\"" "$OUT/$step.xml" | head -1 | sed 's/^text="//; s/"$//')
+    if echo "$who" | grep -qi "kite"; then fail "$step: '$who' dialog"; return 1; fi
+    # The slow emulator sometimes freezes its own System UI: not Kite's fault. Press Wait and go on.
+    warn "$step: the emulator showed '$who' (not Kite); pressed Wait"
+    tap "Wait" "$step" || adb shell input keyevent 4
+    sleep 2
+  fi
   if ! alive; then fail "$step: Kite is no longer running"; return 1; fi
   return 0
 }
@@ -163,6 +171,7 @@ if grep -qi "confirm you.re not a bot\|sign in to confirm" "$OUT"/kite-*.txt 2>/
 fi
 kill $LOGCAT 2>/dev/null
 # Echo the end of Kite's error log into the job log too, so it can be read without downloading the artifact.
+if [ -s "$OUT/kite-freeze.txt" ]; then echo "== Kite's freeze log (last 60 lines)"; tail -n 60 "$OUT/kite-freeze.txt" | cut -c1-400; fi
 if [ -s "$OUT/kite-errors.txt" ]; then echo "== Kite's error log (last 60 lines)"; tail -n 60 "$OUT/kite-errors.txt" | cut -c1-400; fi
 
 {
