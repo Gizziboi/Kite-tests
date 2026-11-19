@@ -139,6 +139,15 @@ adb shell wm size 1812x2176; adb shell wm density 420; sleep 6; shot fold-inner
 check fold-inner && pass "inner-screen size while playing"
 adb shell wm size reset; adb shell wm density reset; sleep 3
 
+# 5b. A channel page: header and videos must show (it opened blank on 2.9.2)
+adb shell am start -n $PKG/.ChannelActivity --es url "https://www.youtube.com/@YouTube" >/dev/null 2>&1; sleep 15
+shot channel
+if check channel; then
+  n=$(grep -o 'text="[^"]\{12,\}"' "$OUT/channel.xml" | wc -l)
+  if [ "$n" -ge 3 ]; then pass "channel page ($n titles on screen)"; else fail "channel page showed only $n titles"; fi
+fi
+adb shell input keyevent 4; sleep 2
+
 # 6. Shorts tab
 adb shell am start -n $PKG/.MainActivity >/dev/null; sleep 3; dump main2
 if tap "Shorts" main2; then sleep 12; shot shorts; check shorts && pass "Shorts tab opens"
