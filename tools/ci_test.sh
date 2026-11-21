@@ -5,6 +5,8 @@
 # Fails on crashes, ANRs, the app dying, or a video that doesn't play.
 APK=$1; OUT=${2:-out}
 PKG=app.kite
+# What YouTube says when it refuses the test machine (not Kite) for a public video.
+BOTWALL="confirm you.re not a bot\|SignInConfirmNotBot\|sign in to confirm\|UNPLAYABLE: .This content isn.t available"
 mkdir -p "$OUT"
 RES="$OUT/results.txt"; : > "$RES"
 FAIL=0
@@ -75,9 +77,10 @@ video() {
   done
   shot "$name"
   check "$name" || return 1
-  # YouTube often refuses datacenter IPs (like GitHub's runners) with "Sign in to confirm you're not a bot".
+  # YouTube often refuses datacenter IPs (like GitHub's runners) with "Sign in to confirm you're not a bot",
+  # or (since 2026-11-21) with UNPLAYABLE "This content isn't available" for these well-known public videos.
   # That's the test machine's network, not a Kite bug, so it's a warning, not a failure.
-  adb shell cat /data/data/$PKG/files/errors.txt 2>/dev/null | grep -qi "confirm you.re not a bot\|SignInConfirmNotBot" &&
+  adb shell cat /data/data/$PKG/files/errors.txt 2>/dev/null | grep -qi "$BOTWALL" &&
     { warn "video $id: YouTube blocked this test machine as a bot, so playback couldn't be tested here"; return 0; }
   fail "video $id did not play within ${wait}s (Kite's own error log is in errors.txt)"
   return 1
@@ -166,7 +169,7 @@ for f in errors.txt crash.txt freeze.txt; do
   adb shell cat /data/data/$PKG/files/$f > "$OUT/kite-$f" 2>/dev/null || true
 done
 [ -s "$OUT/kite-errors.txt" ] && cp "$OUT/kite-errors.txt" "$OUT/errors.txt"
-if grep -qi "confirm you.re not a bot\|sign in to confirm" "$OUT"/kite-*.txt 2>/dev/null; then
+if grep -qi "$BOTWALL" "$OUT"/kite-*.txt 2>/dev/null; then
   warn "YouTube asked this test machine to prove it's not a bot; playback failures may be the test's network, not Kite"
 fi
 kill $LOGCAT 2>/dev/null
